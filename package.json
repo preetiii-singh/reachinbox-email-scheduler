@@ -1,0 +1,11 @@
+{
+  "name": "reachinbox-email-scheduler",
+  "private": true,
+  "workspaces": ["apps/*"],
+  "scripts": {
+    "dev": "set \"ComSpec=%SystemRoot%\\System32\\cmd.exe\" && set \"PATH=%SystemRoot%\\System32;%PATH%\" && concurrently \"npm run dev -w @reachinbox/api\" \"npm run dev -w @reachinbox/web\"",
+    "build": "npm run build -ws",
+    "db:migrate": "npm run db:migrate -w @reachinbox/api"
+  },
+  "devDependencies": { "concurrently": "^9.1.2" }
+}

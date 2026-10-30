@@ -1,0 +1,9 @@
+import { db } from './db.js';
+await db.query(`CREATE EXTENSION IF NOT EXISTS pgcrypto;
+CREATE TABLE IF NOT EXISTS users (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), google_id text UNIQUE NOT NULL, email text UNIQUE NOT NULL, name text NOT NULL, avatar_url text, created_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS senders (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid REFERENCES users(id) ON DELETE CASCADE, email text NOT NULL, display_name text, created_at timestamptz DEFAULT now(), UNIQUE(user_id,email));
+CREATE TABLE IF NOT EXISTS campaigns (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid REFERENCES users(id) ON DELETE CASCADE, sender_id uuid REFERENCES senders(id), subject text NOT NULL, body text NOT NULL, delay_ms integer NOT NULL, hourly_limit integer NOT NULL, created_at timestamptz DEFAULT now());
+CREATE TABLE IF NOT EXISTS scheduled_emails (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), campaign_id uuid REFERENCES campaigns(id) ON DELETE CASCADE, user_id uuid REFERENCES users(id) ON DELETE CASCADE, sender_id uuid REFERENCES senders(id), recipient text NOT NULL, subject text NOT NULL, body text NOT NULL, scheduled_at timestamptz NOT NULL, sent_at timestamptz, status text NOT NULL DEFAULT 'scheduled' CHECK(status IN ('scheduled','sending','sent','failed')), revision integer NOT NULL DEFAULT 1, error text, message_id text, created_at timestamptz DEFAULT now());
+CREATE INDEX IF NOT EXISTS emails_due_idx ON scheduled_emails(status, scheduled_at); CREATE INDEX IF NOT EXISTS emails_user_idx ON scheduled_emails(user_id,status);
+CREATE TABLE IF NOT EXISTS slack_connections (user_id uuid PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE, team_id text NOT NULL, encrypted_token text NOT NULL, channel_id text, created_at timestamptz DEFAULT now(), updated_at timestamptz DEFAULT now());`);
+console.log('Migration complete'); await db.end();
