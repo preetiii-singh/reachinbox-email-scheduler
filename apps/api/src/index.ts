@@ -2,6 +2,8 @@ import express from 'express'; import session from 'express-session'; import con
 declare global { namespace Express { interface User { id:string; email:string; name:string; avatar_url?:string } } }
 declare module 'express-session' { interface SessionData { slackState?: string } }
 const app=express(); app.set('trust proxy',1); app.use(cors({origin:config.webOrigin,credentials:true})); app.use(express.json({limit:'2mb'}));
+app.get('/',(_req,res)=>res.json({service:'reachinbox-email-scheduler',status:'ok'}));
+app.get('/health',(_req,res)=>res.json({status:'ok'}));
 const Store=connectPgSimple(session); app.use(session({store:new Store({pool:db,createTableIfMissing:true}),secret:config.sessionSecret,resave:false,saveUninitialized:false,cookie:{httpOnly:true,sameSite:'lax',secure:process.env.NODE_ENV==='production',maxAge:7*864e5}})); app.use(passport.initialize());app.use(passport.session());
 passport.serializeUser((u,done)=>done(null,u.id)); passport.deserializeUser(async(id:string,done)=>{try{done(null,(await db.query('SELECT * FROM users WHERE id=$1',[id])).rows[0])}catch(e){done(e)}});
 passport.use(new GoogleStrategy({clientID:process.env.GOOGLE_CLIENT_ID??'',clientSecret:process.env.GOOGLE_CLIENT_SECRET??'',callbackURL:process.env.GOOGLE_CALLBACK_URL??'http://localhost:4000/auth/google/callback'},async(_,__,profile,done)=>{try{const r=await db.query(`INSERT INTO users(google_id,email,name,avatar_url) VALUES($1,$2,$3,$4) ON CONFLICT(google_id) DO UPDATE SET email=EXCLUDED.email,name=EXCLUDED.name,avatar_url=EXCLUDED.avatar_url RETURNING *`,[profile.id,profile.emails?.[0]?.value,profile.displayName,profile.photos?.[0]?.value]);done(null,r.rows[0])}catch(e){done(e)}}));
